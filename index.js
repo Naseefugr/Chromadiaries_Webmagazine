@@ -1146,10 +1146,10 @@ function showCategoryPage(category) {
             categoryTitle.textContent = 'Features';
             break;
         case 'theology':
-            categoryTitle.textContent = 'Letters';
+            categoryTitle.textContent = 'Diary';
             break;
         case 'shorts':
-            categoryTitle.textContent = 'Diary';
+            categoryTitle.textContent = 'Letters';
             break;
         case 'translation':
             categoryTitle.textContent = 'Essays';
@@ -2249,9 +2249,9 @@ function getCategoryLabel(category) {
         case 'society-culture':
             return 'Features';
         case 'theology':
-            return 'Letters';
-        case 'shorts':
             return 'Diary';
+        case 'shorts':
+            return 'Letters';
         case 'translation':
             return 'Essays';
         case 'podcast':
@@ -2299,3 +2299,24 @@ function getLikeCount(writingId) {
     });
 }
 
+// Mobile navigation hide on scroll
+let lastScrollTop = 0;
+let mobileNav = document.querySelector('.navbar');
+let mobileNavHeight = mobileNav.offsetHeight;
+
+window.addEventListener('scroll', function() {
+    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Only apply on mobile devices
+    if (window.innerWidth <= 768) {
+        if (scrollTop > lastScrollTop && scrollTop > mobileNavHeight) {
+            // Scrolling down
+            mobileNav.style.transform = `translateY(-${mobileNavHeight}px)`;
+        } else {
+            // Scrolling up
+            mobileNav.style.transform = 'translateY(0)';
+        }
+    }
+    
+    lastScrollTop = scrollTop;
+});
