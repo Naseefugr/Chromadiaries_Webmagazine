@@ -1481,11 +1481,15 @@ function loadWritings() {
                         const fullName = `${authorData.firstName || ''} ${authorData.surname || ''}`.trim();
                         writing.authorName = fullName || writing.author;
                         writing.authorBio = authorData.bio || '';
-                        writing.authorProfilePicture = authorData.profilePicture || `https://picsum.photos/seed/${writing.author}/50/50.jpg`;
+                        // Use default image if no profile picture
+                        writing.authorProfilePicture = authorData.profilePicture || getDefaultAvatar();
                         break;
                     }
                 }
             });
+
+
+            
 
             // Sort by creation date (newest first)
             writings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -1538,6 +1542,12 @@ function refreshAuthorDataForWriting(writing) {
     });
 }
 
+// Add this function to index.js to get a default avatar
+function getDefaultAvatar() {
+    return `https://ui-avatars.com/api/?name=User&background=526db4&color=fff&size=128`;
+}
+
+// Update the loadUserData function in index.js
 function loadUserData() {
     if (currentUser) {
         database.ref('users/' + currentUser.uid).once('value').then(snapshot => {
@@ -1549,17 +1559,26 @@ function loadUserData() {
                 document.getElementById('profileSurname').value = userData.surname || '';
                 document.getElementById('profileEmail').value = userData.email || currentUser.email;
                 document.getElementById('profilePhone').value = userData.phone || '';
-                document.getElementById('profileInstitution').value = userData.institution || ''; // Add institution field
+                document.getElementById('profileInstitution').value = userData.institution || '';
                 document.getElementById('profileBio').value = userData.bio || '';
                 document.getElementById('profileWebsite').value = userData.website || '';
                 document.getElementById('profileLocation').value = userData.location || '';
 
-                // Update profile picture
-                if (userData.profilePicture) {
-                    document.getElementById('profilePic').src = userData.profilePicture;
-                    // Update profile button to show user image instead of icon
-                    profileBtn.innerHTML = `<img src="${userData.profilePicture}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                // Update profile picture with fallback
+                const profilePic = document.getElementById('profilePic');
+                if (userData.profilePicture && userData.profilePicture !== 'image') {
+                    profilePic.src = userData.profilePicture;
+                } else {
+                    profilePic.src = getDefaultAvatar();
                 }
+                
+                // Add error handling for image loading
+                profilePic.onerror = function() {
+                    this.src = getDefaultAvatar();
+                };
+                
+                // Update profile button to show user image instead of icon
+                profileBtn.innerHTML = `<img src="${profilePic.src}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
             }
         });
     }
@@ -1761,7 +1780,16 @@ function displayWritings(writingsToDisplay, containerId = 'recentWritings') {
         articleCard.className = 'col-md-4 mb-4';
 
         const categoryLabel = getCategoryLabel(writing.category);
-        const authorProfilePic = writing.authorProfilePicture || `https://picsum.photos/seed/${writing.author}/35/35.jpg`;
+        
+        // Use proper default avatar
+        let authorProfilePic;
+        if (writing.authorProfilePicture && writing.authorProfilePicture !== 'image') {
+            authorProfilePic = writing.authorProfilePicture;
+        } else {
+            // Generate avatar with author name
+            const authorName = writing.authorName || writing.author;
+            authorProfilePic = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=526db4&color=fff&size=128`;
+        }
 
         // Use the loaded counts
         const likesCount = writing.likesCount || 0;
@@ -1776,7 +1804,8 @@ function displayWritings(writingsToDisplay, containerId = 'recentWritings') {
                     <p class="card-text">${writing.description}</p>
                     <div class="article-meta">
                         <div class="author-info">
-                            <img src="${authorProfilePic}" alt="${writing.authorName}" class="author-avatar">
+                            <img src="${authorProfilePic}" alt="${writing.authorName}" class="author-avatar" 
+                                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(writing.authorName || writing.author)}&background=526db4&color=fff&size=128'">
                             <div>
                                 <span class="author-name clickable-author" data-author="${writing.author}">${writing.authorName || writing.author}</span>
                                 <span class="author-bio">${writing.authorBio || ''}</span>
