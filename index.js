@@ -52,6 +52,8 @@ const dashboardPage = document.getElementById('dashboardPage');
 const authorDashboardPage = document.getElementById('authorDashboardPage');
 const articlePage = document.getElementById('articlePage');
 const searchResultsPage = document.getElementById('searchResultsPage');
+const guidelinesPage = document.getElementById('guidelinesPage');
+
 
 // State
 let currentUser = null;
@@ -891,17 +893,58 @@ signupForm.addEventListener('submit', (e) => {
         });
 });
 
-// Writing Form - IMPROVED
+// Add this to index.js after the setupImageUpload function
+
+// Toggle between image upload and URL
+document.querySelectorAll('input[name="imageSource"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.value === 'upload') {
+            document.getElementById('writingImageUpload').style.display = 'block';
+            document.getElementById('writingImageUrlContainer').style.display = 'none';
+        } else {
+            document.getElementById('writingImageUpload').style.display = 'none';
+            document.getElementById('writingImageUrlContainer').style.display = 'block';
+        }
+    });
+});
+
+// Handle image URL input
+document.getElementById('writingImageUrl').addEventListener('input', function() {
+    const url = this.value;
+    const preview = document.getElementById('imageUrlPreview');
+    
+    if (url) {
+        preview.innerHTML = `
+            <img src="${url}" alt="Image preview" class="img-fluid" onerror="this.onerror=null; this.src='https://picsum.photos/seed/error/400/300.jpg';">
+            <p class="text-muted small mt-1">Image preview</p>
+        `;
+    } else {
+        preview.innerHTML = '';
+    }
+});
+
+
 writingForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
     const title = document.getElementById('writingTitle').value;
     const description = document.getElementById('writingDescription').value;
-    const image = document.getElementById('writingImage').value || `https://picsum.photos/seed/${Date.now()}/400/300.jpg`;
+    
+    // Get image from either upload or URL
+    let image = '';
+    const imageSource = document.querySelector('input[name="imageSource"]:checked').value;
+    
+    if (imageSource === 'upload') {
+        image = document.getElementById('writingImage').value || `https://picsum.photos/seed/${Date.now()}/400/300.jpg`;
+    } else {
+        image = document.getElementById('writingImageUrl').value || `https://picsum.photos/seed/${Date.now()}/400/300.jpg`;
+    }
+    
     const content = document.getElementById('writingContent').innerHTML;
     const tags = document.getElementById('writingTags').value.split(',').map(tag => tag.trim());
     const category = document.getElementById('writingCategory').value;
 
+    // Rest of the function remains the same...
     // Create writing object
     const writing = {
         title: title,
@@ -951,18 +994,24 @@ writingForm.addEventListener('submit', (e) => {
             <i class="fas fa-camera"></i> Change Image
         </div>
     `;
+    document.getElementById('imageUrlPreview').innerHTML = '';
+    
+    // Reset to upload option
+    document.getElementById('uploadImage').checked = true;
+    document.getElementById('writingImageUpload').style.display = 'block';
+    document.getElementById('writingImageUrlContainer').style.display = 'none';
 
- // Re-setup image upload
-setupImageUpload();
+    // Re-setup image upload
+    setupImageUpload();
 
-// Show success message
-successMessage.textContent = 'Your writing has been submitted for review!';
-successModal.show();
+    // Show success message
+    successMessage.textContent = 'Your writing has been submitted for review!';
+    successModal.show();
 
-// Redirect to dashboard
-setTimeout(() => {
-showPage('dashboard');
-}, 2000);
+    // Redirect to dashboard
+    setTimeout(() => {
+        showPage('dashboard');
+    }, 2000);
 });
 
 // Profile Form - IMPROVED
@@ -1056,11 +1105,12 @@ console.error('Profile update error:', error);
 alert('Profile update failed. Please try again.');
 });
 });
-// Page Navigation Functions
+
 function showPage(page) {
     // Hide all pages
     homePage.classList.add('hidden');
     aboutPage.classList.add('hidden');
+    guidelinesPage.classList.add('hidden'); // Add this line
     categoryPage.classList.add('hidden');
     contactPage.classList.add('hidden');
     createWritingPage.classList.add('hidden');
@@ -1078,6 +1128,10 @@ function showPage(page) {
         case 'about':
             aboutPage.classList.remove('hidden');
             currentPage = 'about';
+            break;
+        case 'guidelines': // Add this case
+            guidelinesPage.classList.remove('hidden');
+            currentPage = 'guidelines';
             break;
         case 'contact':
             contactPage.classList.remove('hidden');
@@ -1179,6 +1233,7 @@ function showCategoryPage(category) {
     closeAllMobileDropdowns();
 }
 
+// Update the showAuthorDashboard function in index.js
 function showAuthorDashboard(authorEmail) {
     // Hide all pages
     homePage.classList.add('hidden');
@@ -1319,7 +1374,7 @@ function showAuthorDashboard(authorEmail) {
             })).then(() => {
                 displayWritings(authorWritings, 'authorWritings');
                 
-                // If viewing own profile, add edit options to writings
+                // Only add edit options if viewing own profile
                 if (isOwnProfile) {
                     addEditOptionsToAuthorWritings(authorWritings);
                 }
@@ -1352,7 +1407,7 @@ function addEditOptionsToAuthorWritings(authorWritings) {
             ${getStatusText(writing.status)}
         `;
         
-        // Create edit actions container
+        // Create edit actions container - only for own profile
         const editActions = document.createElement('div');
         editActions.className = 'author-writing-actions';
         editActions.innerHTML = `
