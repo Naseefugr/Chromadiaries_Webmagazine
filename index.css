@@ -2941,3 +2941,43 @@
         font-size: 1.5rem;
     }
 }
+
+/* Author Avatar Fix */
+.author-avatar,
+.article-author-avatar,
+.author-pic {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+    background-color: #f0f0f0;
+    /* Prevent stretching */
+    flex-shrink: 0;
+}
+
+/* Default avatar for profile pages */
+.profile-pic {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid var(--primary-color);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    background-color: #f0f0f0;
+    /* Prevent stretching */
+    flex-shrink: 0;
+}
+
+/* Default avatar for author dashboard */
+.author-dashboard .author-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    background-color: #f0f0f0;
+    /* Prevent stretching */
+    flex-shrink: 0;
+}
+
