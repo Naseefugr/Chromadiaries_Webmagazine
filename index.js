@@ -1488,9 +1488,6 @@ function loadWritings() {
                 }
             });
 
-
-            
-
             // Sort by creation date (newest first)
             writings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -1507,7 +1504,7 @@ function loadWritings() {
                 // Display writings on home page
                 displayWritings(writings.slice(0, displayedWritings));
 
-                // Set up slideshow with latest writings
+                // Set up slideshow with latest writings - This will now refresh the slideshow
                 setupSlideshowWithWritings();
 
                 // Show/hide show more button
@@ -1519,6 +1516,49 @@ function loadWritings() {
             });
         });
     });
+}
+
+function refreshSlideshow() {
+    // Reload writings and update the slideshow
+    loadWritings();
+}
+
+// Call this function when new content is added, for example after form submission
+writingForm.addEventListener('submit', (e) => {
+    // ... existing code ...
+    
+    // After successful submission, refresh the slideshow
+    setTimeout(() => {
+        refreshSlideshow();
+    }, 2000);
+});
+
+// Also refresh the slideshow when the page is shown
+function showPage(page) {
+    // Hide all pages
+    homePage.classList.add('hidden');
+    aboutPage.classList.add('hidden');
+    guidelinesPage.classList.add('hidden');
+    categoryPage.classList.add('hidden');
+    contactPage.classList.add('hidden');
+    createWritingPage.classList.add('hidden');
+    dashboardPage.classList.add('hidden');
+    authorDashboardPage.classList.add('hidden');
+    articlePage.classList.add('hidden');
+    searchResultsPage.classList.add('hidden');
+
+    // Show selected page
+    switch (page) {
+        case 'home':
+            homePage.classList.remove('hidden');
+            currentPage = 'home';
+            // Refresh the slideshow when home page is shown
+            refreshSlideshow();
+            break;
+        // ... rest of the function ...
+    }
+    
+    // ... rest of the function ...
 }
 
 function refreshAuthorDataForWriting(writing) {
@@ -2275,6 +2315,11 @@ function setupSlideshowWithWritings() {
             </div>
         `;
 
+        // Add click event to slide
+        slide.addEventListener('click', () => {
+            viewWriting(writing);
+        });
+
         slideshow.appendChild(slide);
     });
 
@@ -2318,6 +2363,7 @@ function setupSlideshowWithWritings() {
     // Auto-rotate slides every 5 seconds
     setInterval(nextSlide, 5000);
 }
+
 
 // Update the getCategoryLabel function
 function getCategoryLabel(category) {
