@@ -55,9 +55,16 @@
         <li class="nav-item">
             <a class="nav-link" href="#" onclick="showPage('home')">Home</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#" onclick="showPage('about')">About Us</a>
-        </li>
+        <!-- About Dropdown -->
+<li class="nav-item dropdown">
+    <a class="nav-link" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        About <i class="fas fa-chevron-down"></i>
+    </a>
+    <div class="dropdown-content" aria-labelledby="aboutDropdown">
+        <a class="dropdown-item" href="#" onclick="showPage('about')">About Us</a>
+        <a class="dropdown-item" href="#" onclick="showPage('guidelines')">Submission Guidelines</a>
+    </div>
+</li>
         <!-- Categories Dropdown (changed from Article) -->
         <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="articleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -96,7 +103,16 @@
     <!-- Mobile Navigation Menu -->
     <div class="mobile-nav-menu" id="mobileNavMenu">
         <a class="nav-link" href="#" onclick="showPage('home')">Home</a>
+        <!-- Mobile About Dropdown -->
+<div class="mobile-dropdown" id="mobileAboutDropdown">
+    <div class="mobile-dropdown-toggle" onclick="toggleMobileDropdown('about')">
+        About <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="mobile-dropdown-content">
         <a class="nav-link" href="#" onclick="showPage('about')">About Us</a>
+        <a class="nav-link" href="#" onclick="showPage('guidelines')">Submission Guidelines</a>
+    </div>
+</div>
         
         <!-- Mobile Categories Dropdown (changed from Article) -->
         <div class="mobile-dropdown" id="mobileArticleDropdown">
@@ -222,7 +238,91 @@
                 </div>
             </div>
         </div>
-
+<!-- Guidelines Page -->
+<div id="guidelinesPage" class="page-content hidden">
+    <div class="guidelines-container">
+        <div class="guidelines-header">
+            <h1>ChromaDiaries – Submission Guidelines</h1>
+            <p>For Young Writers Under 18</p>
+        </div>
+        
+        <div class="guidelines-intro">
+            <p>ChromaDiaries is an Islamic English-language web magazine for readers under 18. We welcome original, creative, and meaningful works from children and teens.</p>
+        </div>
+        
+        <div class="guidelines-section">
+            <h2>1. Who Can Submit</h2>
+            <ul>
+                <li>Students under 18 years of age.</li>
+                <li>Submissions must be original and unpublished.</li>
+                <li>Plagiarized content will be detected and rejected.</li>
+            </ul>
+        </div>
+        
+        <div class="guidelines-section">
+            <h2>2. What Can You Submit</h2>
+            <p>We accept the following categories:</p>
+            <ul>
+                <li>Feature Articles – maximum 1600 words</li>
+                <li>Essays – maximum 1600 words</li>
+                <li>Stories – maximum 1000 words</li>
+                <li>Poems – 8–25 lines</li>
+                <li>Translations – no word limit</li>
+                <li>Reviews – no word limit</li>
+                <li>Travelogues – no word limit</li>
+            </ul>
+            <p>All content should be suitable for young readers.</p>
+        </div>
+        
+        <div class="guidelines-section">
+            <h2>3. Submission Requirements</h2>
+            <ol>
+                <li>Create an Author Profile on the ChromaDiaries website, including:
+                    <ul>
+                        <li>First Name</li>
+                        <li>Surname</li>
+                        <li>Email</li>
+                        <li>Phone Number</li>
+                        <li>Institution/School</li>
+                        <li>Bio</li>
+                        <li>Website</li>
+                        <li>Location</li>
+                        <li>Date of Birth</li>
+                        <li>Password</li>
+                    </ul>
+                </li>
+                <li>Once your profile is created, you can submit your work through your account.</li>
+            </ol>
+        </div>
+        
+        <div class="guidelines-section">
+            <h2>4. Acceptance Notification</h2>
+            <ul>
+                <li>Authors will receive an acceptance letter within 1 week of submission.</li>
+                <li>Only selected works will be published on ChromaDiaries.</li>
+            </ul>
+        </div>
+        
+        <div class="guidelines-section">
+            <h2>5. Editing Process</h2>
+            <ol>
+                <li>Initial Review – The editorial team checks for:
+                    <ul>
+                        <li>Originality and authenticity.</li>
+                        <li>Language, grammar, and spelling.</li>
+                        <li>Suitability for young readers.</li>
+                    </ul>
+                </li>
+                <li>Editing – Minor edits may be made for:
+                    <ul>
+                        <li>Clarity and readability.</li>
+                        <li>Grammar, punctuation, and spelling.</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+</div>
         <!-- Category Page -->
         <div id="categoryPage" class="page-content hidden">
             <h2 id="categoryTitle" class="mb-4">Category</h2>
@@ -309,21 +409,44 @@
                         <label for="writingDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="writingDescription" rows="3" placeholder="Enter description" required></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="writingImage" class="form-label">Featured Image</label>
-                        <div class="image-upload-container" id="writingImageUpload">
-                            <input type="file" id="writingImageFile" accept="image/*" style="display: none;">
-                            <div id="imageUploadPlaceholder">
-                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">Click to upload image or drag and drop</p>
-                                <p class="text-muted small">PNG, JPG, GIF up to 10MB</p>
-                            </div>
-                            <div class="image-upload-overlay">
-                                <i class="fas fa-camera"></i> Change Image
-                            </div>
-                        </div>
-                        <input type="hidden" id="writingImage" value="">
-                    </div>
+                 <div class="form-group">
+    <label for="writingImage" class="form-label">Featured Image</label>
+    
+    <!-- Toggle between upload and URL -->
+    <div class="image-source-toggle mb-3">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="imageSource" id="uploadImage" value="upload" checked>
+            <label class="form-check-label" for="uploadImage">Upload Image</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="imageSource" id="urlImage" value="url">
+            <label class="form-check-label" for="urlImage">Image URL</label>
+        </div>
+    </div>
+    
+    <!-- Upload option (default) -->
+    <div class="image-upload-container" id="writingImageUpload">
+        <input type="file" id="writingImageFile" accept="image/*" style="display: none;">
+        <div id="imageUploadPlaceholder">
+            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Click to upload image or drag and drop</p>
+            <p class="text-muted small">PNG, JPG, GIF up to 10MB</p>
+        </div>
+        <div class="image-upload-overlay">
+            <i class="fas fa-camera"></i> Change Image
+        </div>
+    </div>
+    
+    <!-- URL option (hidden by default) -->
+    <div class="image-url-container" id="writingImageUrlContainer" style="display: none;">
+        <input type="url" class="form-control" id="writingImageUrl" placeholder="Enter image URL">
+        <div class="image-preview-container mt-2" id="imageUrlPreview">
+            <!-- Preview will be shown here -->
+        </div>
+    </div>
+    
+    <input type="hidden" id="writingImage" value="">
+</div>
                     <div class="form-group">
                         <label for="writingContent" class="form-label">Content</label>
                         <div class="editor-toolbar">
@@ -1100,10 +1223,11 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
     <script src="index.js"></script>
 </body>
 </html>
