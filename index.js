@@ -45,15 +45,13 @@ const mobileNavMenu = document.getElementById('mobileNavMenu');
 // Page Elements
 const homePage = document.getElementById('homePage');
 const aboutPage = document.getElementById('aboutPage');
-const categoryPage = document.getElementById('categoryPage');
+const guidelinesPage = document.getElementById('guidelinesPage');
 const contactPage = document.getElementById('contactPage');
 const createWritingPage = document.getElementById('createWritingPage');
 const dashboardPage = document.getElementById('dashboardPage');
 const authorDashboardPage = document.getElementById('authorDashboardPage');
 const articlePage = document.getElementById('articlePage');
 const searchResultsPage = document.getElementById('searchResultsPage');
-const guidelinesPage = document.getElementById('guidelinesPage');
-
 
 // State
 let currentUser = null;
@@ -68,6 +66,8 @@ let searchQuery = '';
 let profileImageUrl = '';
 let currentWritingId = null;
 let userLikes = {};
+let userFollowing = {};
+let currentAuthor = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Load user data
             loadUserData();
             loadUserEngagement();
+            loadFollowingData();
         } else {
             currentUser = null;
 
@@ -112,6 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set up likes
     setupEngagement();
+    
+    // Set up follow buttons
+    setupFollowButtons();
 });
 
 // Mobile Navigation Toggle
@@ -141,12 +145,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Add these variables to the top of your index.js file
-let userFollowing = {};
-let currentAuthor = null;
-
-
-
 // Modal switching functionality
 document.getElementById('signupFromLogin').addEventListener('click', (e) => {
     e.preventDefault();
@@ -159,292 +157,6 @@ document.getElementById('loginFromSignup').addEventListener('click', (e) => {
     signupModal.hide();
     loginModal.show();
 });
-
-// Add these functions to handle following
-function setupFollowButtons() {
-    // Author dashboard follow button
-    const authorFollowBtn = document.getElementById('authorFollowBtn');
-    if (authorFollowBtn) {
-        authorFollowBtn.addEventListener('click', () => {
-            if (!currentUser) {
-                alert('Please login to follow authors');
-                return;
-            }
-            
-            toggleFollow(currentAuthor);
-        });
-    }
-    
-    // Article page follow button
-    const articleFollowBtn = document.getElementById('articleFollowBtn');
-    if (articleFollowBtn) {
-        articleFollowBtn.addEventListener('click', () => {
-            if (!currentUser) {
-                alert('Please login to follow authors');
-                return;
-            }
-            
-            const authorEmail = document.getElementById('articleAuthor').getAttribute('data-author');
-            toggleFollow(authorEmail);
-        });
-    }
-}
-
-// Update the toggleFollow function to provide better feedback
-function toggleFollow(authorEmail) {
-    if (!currentUser || !authorEmail) return;
-    
-    // Don't allow following yourself
-    if (authorEmail === currentUser.email) {
-        alert('You cannot follow yourself');
-        return;
-    }
-    
-    const followRef = database.ref('following/' + currentUser.uid + '/' + authorEmail.replace(/\./g, '_'));
-    
-    followRef.once('value').then(snapshot => {
-        if (snapshot.exists()) {
-            // Unfollow
-            followRef.remove().then(() => {
-                updateFollowButton(authorEmail, false);
-                updateFollowerCount(authorEmail, -1);
-                showNotification('You have unfollowed this author');
-            });
-        } else {
-            // Follow
-            followRef.set({
-                authorEmail: authorEmail,
-                timestamp: new Date().toISOString()
-            }).then(() => {
-                updateFollowButton(authorEmail, true);
-                updateFollowerCount(authorEmail, 1);
-                showNotification('You are now following this author');
-            });
-        }
-    });
-}
-function showNotification(message) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'follow-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: var(--gradient-primary);
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        z-index: 9999;
-        animation: slideInRight 0.3s ease-out;
-        font-size: 14px;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease-out';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
-}
-
-// Add the animations to your CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-
-// Update the updateFollowButton function to handle both buttons
-function updateFollowButton(authorEmail, isFollowing) {
-    // Update author dashboard button
-    const authorFollowBtn = document.getElementById('authorFollowBtn');
-    if (authorFollowBtn && currentAuthor === authorEmail) {
-        if (isFollowing) {
-            authorFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
-            authorFollowBtn.classList.add('following');
-        } else {
-            authorFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
-            authorFollowBtn.classList.remove('following');
-        }
-    }
-    
-    // Update article page button
-    const articleFollowBtn = document.getElementById('articleFollowBtn');
-    const articleAuthor = document.getElementById('articleAuthor');
-    if (articleFollowBtn && articleAuthor && articleAuthor.getAttribute('data-author') === authorEmail) {
-        if (isFollowing) {
-            articleFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
-            articleFollowBtn.classList.add('following');
-        } else {
-            articleFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
-            articleFollowBtn.classList.remove('following');
-        }
-    }
-}
-
-
-function updateFollowerCount(authorEmail, change) {
-    const authorFollowRef = database.ref('followers/' + authorEmail.replace(/\./g, '_'));
-    
-    authorFollowRef.once('value').then(snapshot => {
-        let count = 0;
-        if (snapshot.exists()) {
-            count = snapshot.val().count || 0;
-        }
-        
-        count += change;
-        if (count < 0) count = 0;
-        
-        authorFollowRef.set({ count: count });
-        
-        // Update UI
-        updateFollowerCountUI(authorEmail, count);
-    });
-}
-
-function updateFollowerCountUI(authorEmail, count) {
-    // Update author dashboard count
-    const followerCount = document.getElementById('followerCount');
-    if (followerCount && currentAuthor === authorEmail) {
-        followerCount.textContent = count;
-    }
-    
-    // Update article page count
-    const articleFollowerCount = document.getElementById('articleFollowerCount');
-    const articleAuthor = document.getElementById('articleAuthor');
-    if (articleFollowerCount && articleAuthor && articleAuthor.getAttribute('data-author') === authorEmail) {
-        articleFollowerCount.textContent = count;
-    }
-}
-
-function loadFollowingData() {
-    if (!currentUser) return;
-    
-    // Load who the current user is following
-    database.ref('following/' + currentUser.uid).once('value').then(snapshot => {
-        const following = snapshot.val();
-        userFollowing = {};
-        
-        if (following) {
-            for (const authorKey in following) {
-                // Convert back from the Firebase-safe key
-                const authorEmail = authorKey.replace(/_/g, '.');
-                userFollowing[authorEmail] = true;
-            }
-        }
-        
-        // Update follow buttons if on relevant pages
-        if (currentPage === 'authorDashboard' && currentAuthor) {
-            updateFollowButton(currentAuthor, userFollowing[currentAuthor] || false);
-        } else if (currentPage === 'article') {
-            const articleAuthor = document.getElementById('articleAuthor');
-            if (articleAuthor) {
-                const authorEmail = articleAuthor.getAttribute('data-author');
-                updateFollowButton(authorEmail, userFollowing[authorEmail] || false);
-            }
-        }
-    });
-}
-
-// Fix the updateFollowButton function to properly handle the button state
-function updateFollowButton(authorEmail, isFollowing) {
-    // Update author dashboard button
-    const authorFollowBtn = document.getElementById('authorFollowBtn');
-    if (authorFollowBtn && currentAuthor === authorEmail) {
-        if (isFollowing) {
-            authorFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
-            authorFollowBtn.classList.add('following');
-        } else {
-            authorFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
-            authorFollowBtn.classList.remove('following');
-        }
-    }
-    
-    // Update article page button
-    const articleFollowBtn = document.getElementById('articleFollowBtn');
-    const articleAuthor = document.getElementById('articleAuthor');
-    if (articleFollowBtn && articleAuthor && articleAuthor.getAttribute('data-author') === authorEmail) {
-        if (isFollowing) {
-            articleFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
-            articleFollowBtn.classList.add('following');
-        } else {
-            articleFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
-            articleFollowBtn.classList.remove('following');
-        }
-    }
-}
-
-// Make sure to call setupFollowButtons in your initialization code
-document.addEventListener('DOMContentLoaded', () => {
-    // ... existing code ...
-    
-    // Set up follow buttons
-    setupFollowButtons();
-    
-    // ... rest of initialization code ...
-});
-
-// Add this code inside the DOMContentLoaded event listener
-
-// Add this code inside the DOMContentLoaded event listener
-// Search functionality
-searchBtn.addEventListener('click', () => {
-    const query = searchInput.value.trim();
-    if (query) {
-        searchWritings(query);
-    }
-});
-
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        const query = searchInput.value.trim();
-        if (query) {
-            searchWritings(query);
-        }
-    }
-});
-
-function loadFollowerCount(authorEmail) {
-    if (!authorEmail) return;
-    
-    const authorFollowRef = database.ref('followers/' + authorEmail.replace(/\./g, '_'));
-    
-    authorFollowRef.once('value').then(snapshot => {
-        let count = 0;
-        if (snapshot.exists()) {
-            count = snapshot.val().count || 0;
-        }
-        
-        updateFollowerCountUI(authorEmail, count);
-    });
-}
 
 // Function to close all mobile dropdowns
 function closeAllMobileDropdowns() {
@@ -681,6 +393,34 @@ function setupImageUpload() {
     });
 }
 
+// Toggle between image upload and URL
+document.querySelectorAll('input[name="imageSource"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.value === 'upload') {
+            document.getElementById('writingImageUpload').style.display = 'block';
+            document.getElementById('writingImageUrlContainer').style.display = 'none';
+        } else {
+            document.getElementById('writingImageUpload').style.display = 'none';
+            document.getElementById('writingImageUrlContainer').style.display = 'block';
+        }
+    });
+});
+
+// Handle image URL input
+document.getElementById('writingImageUrl').addEventListener('input', function() {
+    const url = this.value;
+    const preview = document.getElementById('imageUrlPreview');
+    
+    if (url) {
+        preview.innerHTML = `
+            <img src="${url}" alt="Image preview" class="img-fluid" onerror="this.onerror=null; this.src='https://picsum.photos/seed/error/400/300.jpg';">
+            <p class="text-muted small mt-1">Image preview</p>
+        `;
+    } else {
+        preview.innerHTML = '';
+    }
+});
+
 // Upload Image to Firebase Storage
 function uploadImage(file, callback) {
     const storageRef = storage.ref('images/' + Date.now() + '_' + file.name);
@@ -736,7 +476,7 @@ function setupEngagement() {
     }
 }
 
-// Update the loadUserEngagement function
+// Load User Engagement Data
 function loadUserEngagement() {
     if (!currentUser) return;
 
@@ -822,7 +562,7 @@ loginForm.addEventListener('submit', (e) => {
         });
 });
 
-// Update the signupForm event listener
+// Sign Up Form
 signupForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -893,37 +633,7 @@ signupForm.addEventListener('submit', (e) => {
         });
 });
 
-// Add this to index.js after the setupImageUpload function
-
-// Toggle between image upload and URL
-document.querySelectorAll('input[name="imageSource"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        if (this.value === 'upload') {
-            document.getElementById('writingImageUpload').style.display = 'block';
-            document.getElementById('writingImageUrlContainer').style.display = 'none';
-        } else {
-            document.getElementById('writingImageUpload').style.display = 'none';
-            document.getElementById('writingImageUrlContainer').style.display = 'block';
-        }
-    });
-});
-
-// Handle image URL input
-document.getElementById('writingImageUrl').addEventListener('input', function() {
-    const url = this.value;
-    const preview = document.getElementById('imageUrlPreview');
-    
-    if (url) {
-        preview.innerHTML = `
-            <img src="${url}" alt="Image preview" class="img-fluid" onerror="this.onerror=null; this.src='https://picsum.photos/seed/error/400/300.jpg';">
-            <p class="text-muted small mt-1">Image preview</p>
-        `;
-    } else {
-        preview.innerHTML = '';
-    }
-});
-
-
+// Writing Form
 writingForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -944,7 +654,6 @@ writingForm.addEventListener('submit', (e) => {
     const tags = document.getElementById('writingTags').value.split(',').map(tag => tag.trim());
     const category = document.getElementById('writingCategory').value;
 
-    // Rest of the function remains the same...
     // Create writing object
     const writing = {
         title: title,
@@ -1014,143 +723,205 @@ writingForm.addEventListener('submit', (e) => {
     }, 2000);
 });
 
-// Profile Form - IMPROVED
+// Profile Form
 profileForm.addEventListener('submit', (e) => {
-e.preventDefault();
+    e.preventDefault();
 
-const firstName = document.getElementById('profileFirstName').value;
-const surname = document.getElementById('profileSurname').value;
-const bio = document.getElementById('profileBio').value;
-const website = document.getElementById('profileWebsite').value;
-const location = document.getElementById('profileLocation').value;
-const phone = document.getElementById('profilePhone').value;
+    const firstName = document.getElementById('profileFirstName').value;
+    const surname = document.getElementById('profileSurname').value;
+    const bio = document.getElementById('profileBio').value;
+    const website = document.getElementById('profileWebsite').value;
+    const location = document.getElementById('profileLocation').value;
+    const phone = document.getElementById('profilePhone').value;
+    const institution = document.getElementById('profileInstitution').value;
 
-// Get current profile picture URL
-const currentProfilePic = document.getElementById('profilePic').src;
+    // Get current profile picture URL
+    const currentProfilePic = document.getElementById('profilePic').src;
 
-// Update user profile in Firebase
-const updateData = {
-firstName: firstName,
-surname: surname,
-bio: bio,
-website: website,
-location: location,
-phone: phone,
-profilePicture: currentProfilePic,
-updatedAt: new Date().toISOString()
-};
+    // Update user profile in Firebase
+    const updateData = {
+        firstName: firstName,
+        surname: surname,
+        bio: bio,
+        website: website,
+        location: location,
+        phone: phone,
+        institution: institution,
+        profilePicture: currentProfilePic,
+        updatedAt: new Date().toISOString()
+    };
 
-// First update the user profile
-database.ref('users/' + currentUser.uid).update(updateData)
-.then(() => {
-// Update display name in Firebase Auth
-return currentUser.updateProfile({
-displayName: `${firstName} ${surname}`
+    // First update the user profile
+    database.ref('users/' + currentUser.uid).update(updateData)
+        .then(() => {
+            // Update display name in Firebase Auth
+            return currentUser.updateProfile({
+                displayName: `${firstName} ${surname}`
+            });
+        })
+        .then(() => {
+            // Update profile button to show user image
+            profileBtn.innerHTML = `<img src="${currentProfilePic}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+
+            // Now update all writings by this user
+            return database.ref('writings').once('value');
+        })
+        .then(snapshot => {
+            const data = snapshot.val();
+            const updates = {};
+            
+            for (const id in data) {
+                if (data[id].author === currentUser.email) {
+                    const fullName = `${firstName} ${surname}`.trim();
+                    updates[id] = {
+                        ...data[id],
+                        authorName: fullName,
+                        authorBio: bio,
+                        authorInstitution: institution,
+                        authorProfilePicture: currentProfilePic
+                    };
+                }
+            }
+            
+            if (Object.keys(updates).length > 0) {
+                return database.ref('writings').update(updates);
+            } else {
+                return Promise.resolve();
+            }
+        })
+        .then(() => {
+            // Reload writings to reflect the changes
+            return loadWritings();
+        })
+        .then(() => {
+            // If currently viewing an article by this user, refresh it
+            if (currentPage === 'article' && currentWritingId) {
+                const currentWriting = writings.find(w => w.id === currentWritingId);
+                if (currentWriting && currentWriting.author === currentUser.email) {
+                    // Update the current writing object with new author info
+                    currentWriting.authorName = `${firstName} ${surname}`.trim();
+                    currentWriting.authorBio = bio;
+                    currentWriting.authorInstitution = institution;
+                    currentWriting.authorProfilePicture = currentProfilePic;
+                    
+                    // Refresh the article view
+                    viewWriting(currentWriting);
+                }
+            }
+            
+            // Show success message
+            successMessage.textContent = 'Profile updated successfully!';
+            successModal.show();
+        })
+        .catch(error => {
+            console.error('Profile update error:', error);
+            alert('Profile update failed. Please try again.');
+        });
 });
-})
-.then(() => {
-// Update profile button to show user image
-profileBtn.innerHTML = `<img src="${currentProfilePic}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
 
-// Now update all writings by this user
-return database.ref('writings').once('value');
-})
-.then(snapshot => {
-const data = snapshot.val();
-const updates = {};
-
-for (const id in data) {
-if (data[id].author === currentUser.email) {
-const fullName = `${firstName} ${surname}`.trim();
-updates[id] = {
-...data[id],
-authorName: fullName,
-authorBio: bio,
-authorProfilePicture: currentProfilePic
-};
-}
-}
-
-if (Object.keys(updates).length > 0) {
-return database.ref('writings').update(updates);
-} else {
-return Promise.resolve();
-}
-})
-.then(() => {
-// Reload writings to reflect the changes
-return loadWritings();
-})
-.then(() => {
-// If currently viewing an article by this user, refresh it
-if (currentPage === 'article' && currentWritingId) {
-const currentWriting = writings.find(w => w.id === currentWritingId);
-if (currentWriting && currentWriting.author === currentUser.email) {
-// Update the current writing object with new author info
-currentWriting.authorName = `${firstName} ${surname}`.trim();
-currentWriting.authorBio = bio;
-currentWriting.authorProfilePicture = currentProfilePic;
-
-// Refresh the article view
-viewWriting(currentWriting);
-}
-}
-
-// Show success message
-successMessage.textContent = 'Profile updated successfully!';
-successModal.show();
-})
-.catch(error => {
-console.error('Profile update error:', error);
-alert('Profile update failed. Please try again.');
-});
+// Search Functionality
+searchBtn.addEventListener('click', () => {
+    const query = searchInput.value.trim();
+    if (query) {
+        searchWritings(query);
+    }
 });
 
+searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        if (query) {
+            searchWritings(query);
+        }
+    }
+});
+
+// Show More Button
+showMoreBtn.addEventListener('click', () => {
+    displayedWritings = writings.length; // Show all writings
+    displayWritings(writings);
+    showMoreBtn.style.display = 'none'; // Hide button after showing all
+});
+
+// Category Show More Button
+categoryShowMoreBtn.addEventListener('click', () => {
+    categoryDisplayedWritings += 9;
+    const categoryWritings = writings.filter(writing => writing.category === currentCategory);
+    displayWritings(categoryWritings.slice(0, categoryDisplayedWritings), 'categoryWritings');
+
+    if (categoryDisplayedWritings >= categoryWritings.length) {
+        categoryShowMoreBtn.style.display = 'none';
+    } else {
+        categoryShowMoreBtn.style.display = 'block';
+    }
+});
+
+// Search Show More Button
+searchShowMoreBtn.addEventListener('click', () => {
+    searchDisplayedWritings += 9;
+    displayWritings(searchResults.slice(0, searchDisplayedWritings), 'searchResultsContainer');
+
+    if (searchDisplayedWritings >= searchResults.length) {
+        searchShowMoreBtn.style.display = 'none';
+    } else {
+        searchShowMoreBtn.style.display = 'block';
+    }
+});
+
+// Page Navigation Functions
 function showPage(page) {
-    // Hide all pages
-    homePage.classList.add('hidden');
-    aboutPage.classList.add('hidden');
-    guidelinesPage.classList.add('hidden'); // Add this line
-    categoryPage.classList.add('hidden');
-    contactPage.classList.add('hidden');
-    createWritingPage.classList.add('hidden');
-    dashboardPage.classList.add('hidden');
-    authorDashboardPage.classList.add('hidden');
-    articlePage.classList.add('hidden');
-    searchResultsPage.classList.add('hidden');
+    console.log('Showing page:', page);
+    
+    try {
+        // Hide all pages
+        homePage.classList.add('hidden');
+        aboutPage.classList.add('hidden');
+        guidelinesPage.classList.add('hidden');
+        categoryPage.classList.add('hidden');
+        contactPage.classList.add('hidden');
+        createWritingPage.classList.add('hidden');
+        dashboardPage.classList.add('hidden');
+        authorDashboardPage.classList.add('hidden');
+        articlePage.classList.add('hidden');
+        searchResultsPage.classList.add('hidden');
 
-    // Show selected page
-    switch (page) {
-        case 'home':
-            homePage.classList.remove('hidden');
-            currentPage = 'home';
-            break;
-        case 'about':
-            aboutPage.classList.remove('hidden');
-            currentPage = 'about';
-            break;
-        case 'guidelines': // Add this case
-            guidelinesPage.classList.remove('hidden');
-            currentPage = 'guidelines';
-            break;
-        case 'contact':
-            contactPage.classList.remove('hidden');
-            currentPage = 'contact';
-            break;
-        case 'createWriting':
-            createWritingPage.classList.remove('hidden');
-            currentPage = 'createWriting';
-            break;
-        case 'dashboard':
-            dashboardPage.classList.remove('hidden');
-            currentPage = 'dashboard';
-            loadUserWritings();
-            updateDashboardStats();
-            break;
-        case 'article':
-            articlePage.classList.remove('hidden');
-            currentPage = 'article';
-            break;
+        // Show selected page
+        switch (page) {
+            case 'home':
+                homePage.classList.remove('hidden');
+                currentPage = 'home';
+                // Refresh the slideshow when home page is shown
+                refreshSlideshow();
+                break;
+            case 'about':
+                aboutPage.classList.remove('hidden');
+                currentPage = 'about';
+                break;
+            case 'guidelines':
+                guidelinesPage.classList.remove('hidden');
+                currentPage = 'guidelines';
+                break;
+            case 'contact':
+                contactPage.classList.remove('hidden');
+                currentPage = 'contact';
+                break;
+            case 'createWriting':
+                createWritingPage.classList.remove('hidden');
+                currentPage = 'createWriting';
+                break;
+            case 'dashboard':
+                dashboardPage.classList.remove('hidden');
+                currentPage = 'dashboard';
+                loadUserWritings();
+                updateDashboardStats();
+                break;
+            case 'article':
+                articlePage.classList.remove('hidden');
+                currentPage = 'article';
+                break;
+        }
+    } catch (error) {
+        console.error('Error showing page:', error);
     }
 
     // Close profile menu
@@ -1162,7 +933,6 @@ function showPage(page) {
     closeAllMobileDropdowns();
 }
 
-// Update the showCategoryPage function
 function showCategoryPage(category) {
     // Hide all pages
     homePage.classList.add('hidden');
@@ -1233,7 +1003,6 @@ function showCategoryPage(category) {
     closeAllMobileDropdowns();
 }
 
-// Update the showAuthorDashboard function in index.js
 function showAuthorDashboard(authorEmail) {
     // Hide all pages
     homePage.classList.add('hidden');
@@ -1391,7 +1160,6 @@ function showAuthorDashboard(authorEmail) {
     closeAllMobileDropdowns();
 }
 
-
 function addEditOptionsToAuthorWritings(authorWritings) {
     const container = document.getElementById('authorWritings');
     const writingCards = container.querySelectorAll('.article-card');
@@ -1456,7 +1224,6 @@ function getStatusText(status) {
     }
 }
 
-// Update the loadWritings function to properly load counts
 function loadWritings() {
     database.ref('writings').once('value').then(snapshot => {
         const data = snapshot.val();
@@ -1481,6 +1248,7 @@ function loadWritings() {
                         const fullName = `${authorData.firstName || ''} ${authorData.surname || ''}`.trim();
                         writing.authorName = fullName || writing.author;
                         writing.authorBio = authorData.bio || '';
+                        writing.authorInstitution = authorData.institution || '';
                         // Use default image if no profile picture
                         writing.authorProfilePicture = authorData.profilePicture || getDefaultAvatar();
                         break;
@@ -1533,34 +1301,6 @@ writingForm.addEventListener('submit', (e) => {
     }, 2000);
 });
 
-// Also refresh the slideshow when the page is shown
-function showPage(page) {
-    // Hide all pages
-    homePage.classList.add('hidden');
-    aboutPage.classList.add('hidden');
-    guidelinesPage.classList.add('hidden');
-    categoryPage.classList.add('hidden');
-    contactPage.classList.add('hidden');
-    createWritingPage.classList.add('hidden');
-    dashboardPage.classList.add('hidden');
-    authorDashboardPage.classList.add('hidden');
-    articlePage.classList.add('hidden');
-    searchResultsPage.classList.add('hidden');
-
-    // Show selected page
-    switch (page) {
-        case 'home':
-            homePage.classList.remove('hidden');
-            currentPage = 'home';
-            // Refresh the slideshow when home page is shown
-            refreshSlideshow();
-            break;
-        // ... rest of the function ...
-    }
-    
-    // ... rest of the function ...
-}
-
 function refreshAuthorDataForWriting(writing) {
     return database.ref('users').once('value').then(userSnapshot => {
         const users = userSnapshot.val();
@@ -1572,7 +1312,7 @@ function refreshAuthorDataForWriting(writing) {
                 const fullName = `${authorData.firstName || ''} ${authorData.surname || ''}`.trim();
                 writing.authorName = fullName || writing.author;
                 writing.authorBio = authorData.bio || '';
-                writing.authorInstitution = authorData.institution || ''; // Add institution
+                writing.authorInstitution = authorData.institution || '';
                 writing.authorProfilePicture = authorData.profilePicture || `https://picsum.photos/seed/${writing.author}/50/50.jpg`;
                 break;
             }
@@ -1587,7 +1327,6 @@ function getDefaultAvatar() {
     return `https://ui-avatars.com/api/?name=User&background=526db4&color=fff&size=128`;
 }
 
-// Update the loadUserData function in index.js
 function loadUserData() {
     if (currentUser) {
         database.ref('users/' + currentUser.uid).once('value').then(snapshot => {
@@ -1623,102 +1362,6 @@ function loadUserData() {
         });
     }
 }
-
-// Update the profileForm submission to include institution
-profileForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const firstName = document.getElementById('profileFirstName').value;
-    const surname = document.getElementById('profileSurname').value;
-    const bio = document.getElementById('profileBio').value;
-    const website = document.getElementById('profileWebsite').value;
-    const location = document.getElementById('profileLocation').value;
-    const phone = document.getElementById('profilePhone').value;
-    const institution = document.getElementById('profileInstitution').value; // Add institution field
-
-    // Get current profile picture URL
-    const currentProfilePic = document.getElementById('profilePic').src;
-
-    // Update user profile in Firebase (include institution)
-    const updateData = {
-        firstName: firstName,
-        surname: surname,
-        bio: bio,
-        website: website,
-        location: location,
-        phone: phone,
-        institution: institution, // Add institution to update data
-        profilePicture: currentProfilePic,
-        updatedAt: new Date().toISOString()
-    };
-
-    // First update the user profile
-    database.ref('users/' + currentUser.uid).update(updateData)
-        .then(() => {
-            // Update display name in Firebase Auth
-            return currentUser.updateProfile({
-                displayName: `${firstName} ${surname}`
-            });
-        })
-        .then(() => {
-            // Update profile button to show user image
-            profileBtn.innerHTML = `<img src="${currentProfilePic}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-
-            // Now update all writings by this user
-            return database.ref('writings').once('value');
-        })
-        .then(snapshot => {
-            const data = snapshot.val();
-            const updates = {};
-            
-            for (const id in data) {
-                if (data[id].author === currentUser.email) {
-                    const fullName = `${firstName} ${surname}`.trim();
-                    updates[id] = {
-                        ...data[id],
-                        authorName: fullName,
-                        authorBio: bio,
-                        authorInstitution: institution, // Add institution to writings
-                        authorProfilePicture: currentProfilePic
-                    };
-                }
-            }
-            
-            if (Object.keys(updates).length > 0) {
-                return database.ref('writings').update(updates);
-            } else {
-                return Promise.resolve();
-            }
-        })
-        .then(() => {
-            // Reload writings to reflect the changes
-            return loadWritings();
-        })
-        .then(() => {
-            // If currently viewing an article by this user, refresh it
-            if (currentPage === 'article' && currentWritingId) {
-                const currentWriting = writings.find(w => w.id === currentWritingId);
-                if (currentWriting && currentWriting.author === currentUser.email) {
-                    // Update the current writing object with new author info
-                    currentWriting.authorName = `${firstName} ${surname}`.trim();
-                    currentWriting.authorBio = bio;
-                    currentWriting.authorInstitution = institution; // Add institution
-                    currentWriting.authorProfilePicture = currentProfilePic;
-                    
-                    // Refresh the article view
-                    viewWriting(currentWriting);
-                }
-            }
-            
-            // Show success message
-            successMessage.textContent = 'Profile updated successfully!';
-            successModal.show();
-        })
-        .catch(error => {
-            console.error('Profile update error:', error);
-            alert('Profile update failed. Please try again.');
-        });
-});
 
 function loadUserWritings() {
     if (currentUser) {
@@ -1805,7 +1448,6 @@ function updateDashboardStats() {
     }
 }
 
-// Update the displayWritings function
 function displayWritings(writingsToDisplay, containerId = 'recentWritings') {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -1883,35 +1525,6 @@ function displayWritings(writingsToDisplay, containerId = 'recentWritings') {
     });
 }
 
-    // Add this function to index.js
-function loadAuthorFollowers() {
-    database.ref('followers').once('value').then(snapshot => {
-        const followers = snapshot.val();
-        
-        // Update each writing with its author's follower count
-        writings.forEach(writing => {
-            const authorKey = writing.author.replace(/\./g, '_');
-            if (followers && followers[authorKey]) {
-                writing.authorFollowers = followers[authorKey].count || 0;
-            } else {
-                writing.authorFollowers = 0;
-            }
-        });
-        
-        // Refresh the display if we're on a page that shows writings
-        if (currentPage === 'home') {
-            displayWritings(writings.slice(0, displayedWritings));
-        } else if (currentPage === 'category') {
-            const categoryWritings = writings.filter(w => w.category === currentCategory);
-            displayWritings(categoryWritings.slice(0, categoryDisplayedWritings), 'categoryWritings');
-        } else if (currentPage === 'searchResults') {
-            displayWritings(searchResults.slice(0, searchDisplayedWritings), 'searchResultsContainer');
-        }
-    });
-}
-
-
-// Update the displayUserWritings function
 function displayUserWritings(userWritings) {
     const container = document.getElementById('myWritings');
     container.innerHTML = '';
@@ -1982,7 +1595,6 @@ function displayUserWritings(userWritings) {
     });
 }
 
-// Update the viewWriting function
 function viewWriting(writing) {
     // Hide all pages
     homePage.classList.add('hidden');
@@ -2364,7 +1976,6 @@ function setupSlideshowWithWritings() {
     setInterval(nextSlide, 5000);
 }
 
-
 // Update the getCategoryLabel function
 function getCategoryLabel(category) {
     switch (category) {
@@ -2400,7 +2011,232 @@ function formatDate(dateString) {
     });
 }
 
-// Add these functions at the top of your index.js file, after the state variables
+// Following functionality
+function setupFollowButtons() {
+    // Author dashboard follow button
+    const authorFollowBtn = document.getElementById('authorFollowBtn');
+    if (authorFollowBtn) {
+        authorFollowBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Please login to follow authors');
+                return;
+            }
+            
+            toggleFollow(currentAuthor);
+        });
+    }
+    
+    // Article page follow button
+    const articleFollowBtn = document.getElementById('articleFollowBtn');
+    if (articleFollowBtn) {
+        articleFollowBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Please login to follow authors');
+                return;
+            }
+            
+            const authorEmail = document.getElementById('articleAuthor').getAttribute('data-author');
+            toggleFollow(authorEmail);
+        });
+    }
+}
+
+// Update the toggleFollow function to provide better feedback
+function toggleFollow(authorEmail) {
+    if (!currentUser || !authorEmail) return;
+    
+    // Don't allow following yourself
+    if (authorEmail === currentUser.email) {
+        alert('You cannot follow yourself');
+        return;
+    }
+    
+    const followRef = database.ref('following/' + currentUser.uid + '/' + authorEmail.replace(/\./g, '_'));
+    
+    followRef.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            // Unfollow
+            followRef.remove().then(() => {
+                updateFollowButton(authorEmail, false);
+                updateFollowerCount(authorEmail, -1);
+                showNotification('You have unfollowed this author');
+            });
+        } else {
+            // Follow
+            followRef.set({
+                authorEmail: authorEmail,
+                timestamp: new Date().toISOString()
+            }).then(() => {
+                updateFollowButton(authorEmail, true);
+                updateFollowerCount(authorEmail, 1);
+                showNotification('You are now following this author');
+            });
+        }
+    });
+}
+
+function showNotification(message) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'follow-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--gradient-primary);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 9999;
+        animation: slideInRight 0.3s ease-out;
+        font-size: 14px;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Add the animations to your CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Update the updateFollowButton function to handle both buttons
+function updateFollowButton(authorEmail, isFollowing) {
+    // Update author dashboard button
+    const authorFollowBtn = document.getElementById('authorFollowBtn');
+    if (authorFollowBtn && currentAuthor === authorEmail) {
+        if (isFollowing) {
+            authorFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
+            authorFollowBtn.classList.add('following');
+        } else {
+            authorFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+            authorFollowBtn.classList.remove('following');
+        }
+    }
+    
+    // Update article page button
+    const articleFollowBtn = document.getElementById('articleFollowBtn');
+    const articleAuthor = document.getElementById('articleAuthor');
+    if (articleFollowBtn && articleAuthor && articleAuthor.getAttribute('data-author') === authorEmail) {
+        if (isFollowing) {
+            articleFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
+            articleFollowBtn.classList.add('following');
+        } else {
+            articleFollowBtn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+            articleFollowBtn.classList.remove('following');
+        }
+    }
+}
+
+function updateFollowerCount(authorEmail, change) {
+    const authorFollowRef = database.ref('followers/' + authorEmail.replace(/\./g, '_'));
+    
+    authorFollowRef.once('value').then(snapshot => {
+        let count = 0;
+        if (snapshot.exists()) {
+            count = snapshot.val().count || 0;
+        }
+        
+        count += change;
+        if (count < 0) count = 0;
+        
+        authorFollowRef.set({ count: count });
+        
+        // Update UI
+        updateFollowerCountUI(authorEmail, count);
+    });
+}
+
+function updateFollowerCountUI(authorEmail, count) {
+    // Update author dashboard count
+    const followerCount = document.getElementById('followerCount');
+    if (followerCount && currentAuthor === authorEmail) {
+        followerCount.textContent = count;
+    }
+    
+    // Update article page count
+    const articleFollowerCount = document.getElementById('articleFollowerCount');
+    const articleAuthor = document.getElementById('articleAuthor');
+    if (articleFollowerCount && articleAuthor && articleAuthor.getAttribute('data-author') === authorEmail) {
+        articleFollowerCount.textContent = count;
+    }
+}
+
+function loadFollowingData() {
+    if (!currentUser) return;
+    
+    // Load who the current user is following
+    database.ref('following/' + currentUser.uid).once('value').then(snapshot => {
+        const following = snapshot.val();
+        userFollowing = {};
+        
+        if (following) {
+            for (const authorKey in following) {
+                // Convert back from the Firebase-safe key
+                const authorEmail = authorKey.replace(/_/g, '.');
+                userFollowing[authorEmail] = true;
+            }
+        }
+        
+        // Update follow buttons if on relevant pages
+        if (currentPage === 'authorDashboard' && currentAuthor) {
+            updateFollowButton(currentAuthor, userFollowing[currentAuthor] || false);
+        } else if (currentPage === 'article') {
+            const articleAuthor = document.getElementById('articleAuthor');
+            if (articleAuthor) {
+                const authorEmail = articleAuthor.getAttribute('data-author');
+                updateFollowButton(authorEmail, userFollowing[authorEmail] || false);
+            }
+        }
+    });
+}
+
+function loadFollowerCount(authorEmail) {
+    if (!authorEmail) return;
+    
+    const authorFollowRef = database.ref('followers/' + authorEmail.replace(/\./g, '_'));
+    
+    authorFollowRef.once('value').then(snapshot => {
+        let count = 0;
+        if (snapshot.exists()) {
+            count = snapshot.val().count || 0;
+        }
+        
+        updateFollowerCountUI(authorEmail, count);
+    });
+}
 
 // Centralized function to get follower count for an author
 function getFollowerCount(authorEmail) {
