@@ -3125,3 +3125,11 @@
         height: 150px;
     }
 }
+
+/* Add this to your index.css file */
+
+@media (max-width: 767px) {
+  .small-slides {
+    display: none !important;
+  }
+}
